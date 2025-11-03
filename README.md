@@ -44,11 +44,36 @@ celery -A worker.celery_app worker --loglevel=info
 
 ## API Usage
 
-**Create a calibration task:**
+**Create a calibration task (with default sample dataset):**
 ```bash
 curl -X POST http://localhost:8000/tasks/calibration
 # Returns: {"task_id": "...", "status": "pending"}
 ```
+
+**Create a calibration task with custom parameters:**
+```bash
+curl -X POST http://localhost:8000/tasks/calibration \
+  -H "Content-Type: application/json" \
+  -d '{
+    "country": "Tanzania",
+    "age_group": "child",
+    "nsim": 500
+  }'
+```
+
+**With custom dataset**
+```bash
+curl -X POST http://localhost:8000/tasks/calibration \
+  -H "Content-Type: application/json" \
+  -d '{"dataset_path": "/path/to/data.csv", "country": "Kenya"}'
+```
+
+**Available parameters:**
+- `dataset_path` (optional): Path to custom CSV dataset (default: uses sample NeonatesVA5)
+- `country` (default: "Mozambique"): Country for calibration
+- `age_group` (default: "neonate"): Age group - neonate, child, or adult
+- `data_type` (default: "WHO2016"): Data type format
+- `nsim` (default: 1000): Number of InSilicoVA simulations
 
 **Check task status:**
 ```bash
@@ -61,8 +86,21 @@ curl http://localhost:8000/tasks/{task_id}
 curl http://localhost:8000/health
 ```
 
+**API Documentation:**
+Visit http://localhost:8000/docs for interactive Swagger UI
+
 ## Direct R Script Usage
 
+**With sample dataset (default):**
 ```bash
-Rscript complete_va_calibration.R 2>&1
+Rscript complete_va_calibration.R
+```
+
+**With custom parameters:**
+```bash
+Rscript complete_va_calibration.R \
+  --dataset=/path/to/data.csv \
+  --country=Tanzania \
+  --age_group=child \
+  --nsim=500
 ```

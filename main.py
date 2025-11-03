@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from worker import run_calibration_task, celery_app
 import logging
 
@@ -7,6 +7,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="VA Calibration API")
+
+
+class CalibrationRequest(BaseModel):
+    dataset_path: str | None = Field(
+        None, description="Path to CSV dataset (optional, uses sample if not provided)"
+    )
+    country: str = Field("Mozambique", description="Country for calibration")
+    age_group: str = Field("neonate", description="Age group: neonate, child, adult")
+    data_type: str = Field("WHO2016", description="Data type: WHO2016, etc.")
+    nsim: int = Field(1000, description="Number of InSilicoVA simulations", gt=0)
 
 
 class TaskResponse(BaseModel):
@@ -27,10 +37,16 @@ def root():
 
 
 @app.post("/tasks/calibration", response_model=TaskResponse)
-def create_calibration_task():
-    """Start a new VA calibration task"""
-    task = run_calibration_task.delay()
-    logger.info(f"Created task: {task.id}")
+def create_calibration_task(request: CalibrationRequest = CalibrationRequest()):
+    """Start a new VA calibration task with custom parameters"""
+    task = run_calibration_task.delay(
+        dataset_path=request.dataset_path,
+        country=request.country,
+        age_group=request.age_group,
+        data_type=request.data_type,
+        nsim=request.nsim,
+    )
+    logger.info(f"Created task: {task.id} with params: {request.model_dump()}")
     return TaskResponse(task_id=task.id, status="pending")
 
 
