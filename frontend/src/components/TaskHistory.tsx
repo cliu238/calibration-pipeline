@@ -46,8 +46,15 @@ export function TaskHistory({ currentTaskId, onSelectTask }: TaskHistoryProps) {
         })
       )
 
-      setTasks(updatedTasks)
-      localStorage.setItem("va-calibration-tasks", JSON.stringify(updatedTasks))
+      // Only update if there are actual status changes
+      const hasChanges = updatedTasks.some((updatedTask, index) =>
+        updatedTask.status !== tasks[index]?.status
+      )
+
+      if (hasChanges) {
+        setTasks(updatedTasks)
+        localStorage.setItem("va-calibration-tasks", JSON.stringify(updatedTasks))
+      }
     }
 
     // Update immediately
@@ -56,7 +63,7 @@ export function TaskHistory({ currentTaskId, onSelectTask }: TaskHistoryProps) {
     // Then poll every 3 seconds
     const interval = setInterval(updateTaskStatuses, 3000)
     return () => clearInterval(interval)
-  }, [tasks.length])
+  }, [tasks])
 
   // Save new task to history when currentTaskId changes
   useEffect(() => {
