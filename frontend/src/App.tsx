@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CalibrationForm } from './components/CalibrationForm'
 import { TaskStatus } from './components/TaskStatus'
 import { LogViewer } from './components/LogViewer'
+import { TaskHistory } from './components/TaskHistory'
 
 function App() {
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
@@ -16,9 +17,10 @@ function App() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
           <CalibrationForm onSubmit={setCurrentTaskId} />
           <TaskStatus taskId={currentTaskId} />
+          <TaskHistory currentTaskId={currentTaskId} onSelectTask={setCurrentTaskId} />
         </div>
 
         <LogViewer taskId={currentTaskId} />
