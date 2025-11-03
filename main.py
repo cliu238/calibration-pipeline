@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from worker import run_calibration_task, celery_app
 import logging
+import os
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,6 +68,45 @@ def get_task_status(task_id: str):
         return TaskResult(task_id=task_id, status="failed", error=str(task_result.info))
     else:
         return TaskResult(task_id=task_id, status=task_result.state.lower())
+
+
+@app.get("/tasks/{task_id}/logs")
+async def get_task_logs(task_id: str, follow: bool = False):
+    """Get task logs - supports live streaming with follow=true"""
+    log_file = f"logs/{task_id}.log"
+
+    if not os.path.exists(log_file):
+        raise HTTPException(status_code=404, detail="Log file not found")
+
+    if not follow:
+        # Return complete log file
+        return FileResponse(
+            log_file, media_type="text/plain", filename=f"{task_id}.log"
+        )
+
+    # Stream logs in real-time (for running tasks)
+    async def log_streamer():
+        with open(log_file, "r") as f:
+            # Read existing content
+            yield f.read()
+
+            # Continue reading new lines as they're written
+            while True:
+                line = f.readline()
+                if line:
+                    yield line
+                else:
+                    # Check if task is still running
+                    task_result = celery_app.AsyncResult(task_id)
+                    if task_result.state not in ["PENDING", "STARTED"]:
+                        # Task finished, read any remaining content and exit
+                        remaining = f.read()
+                        if remaining:
+                            yield remaining
+                        break
+                    await asyncio.sleep(0.5)
+
+    return StreamingResponse(log_streamer(), media_type="text/plain")
 
 
 @app.get("/health")

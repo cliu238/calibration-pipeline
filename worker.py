@@ -34,7 +34,10 @@ def run_calibration_task(
     nsim=1000,
 ):
     """Execute the R calibration script with custom parameters"""
-    logger.info(f"Starting calibration task: {self.request.id}")
+    task_id = self.request.id
+    log_file = f"logs/{task_id}.log"
+
+    logger.info(f"Starting calibration task: {task_id}")
     logger.info(
         f"Parameters: dataset={dataset_path}, country={country}, age_group={age_group}"
     )
@@ -50,24 +53,55 @@ def run_calibration_task(
         cmd.append(f"--data_type={data_type}")
         cmd.append(f"--nsim={nsim}")
 
-        # Run the R script
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=600,  # 10 minute timeout
-        )
+        # Write initial log
+        with open(log_file, "w") as f:
+            f.write(f"Task ID: {task_id}\n")
+            f.write(f"Command: {' '.join(cmd)}\n")
+            f.write(f"Parameters: country={country}, age_group={age_group}, nsim={nsim}\n")
+            f.write("-" * 80 + "\n\n")
 
-        if result.returncode == 0:
-            logger.info(f"Task {self.request.id} completed successfully")
-            return {"output": result.stdout, "status": "success"}
+        # Run the R script with live output streaming to log file
+        with open(log_file, "a") as f:
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+            )
+
+            output_lines = []
+            for line in process.stdout:
+                f.write(line)
+                f.flush()
+                output_lines.append(line)
+
+            process.wait(timeout=600)
+
+        output = "".join(output_lines)
+
+        if process.returncode == 0:
+            logger.info(f"Task {task_id} completed successfully")
+            with open(log_file, "a") as f:
+                f.write("\n" + "-" * 80 + "\n")
+                f.write("STATUS: SUCCESS\n")
+            return {"output": output, "status": "success", "log_file": log_file}
         else:
-            logger.error(f"Task {self.request.id} failed: {result.stderr}")
-            raise Exception(f"R script failed: {result.stderr}")
+            logger.error(f"Task {task_id} failed")
+            with open(log_file, "a") as f:
+                f.write("\n" + "-" * 80 + "\n")
+                f.write(f"STATUS: FAILED (exit code {process.returncode})\n")
+            raise Exception(f"R script failed with exit code {process.returncode}")
 
     except subprocess.TimeoutExpired:
-        logger.error(f"Task {self.request.id} timed out")
+        logger.error(f"Task {task_id} timed out")
+        with open(log_file, "a") as f:
+            f.write("\n" + "-" * 80 + "\n")
+            f.write("STATUS: TIMEOUT\n")
         raise Exception("Task timed out after 10 minutes")
     except Exception as e:
-        logger.error(f"Task {self.request.id} error: {str(e)}")
+        logger.error(f"Task {task_id} error: {str(e)}")
+        with open(log_file, "a") as f:
+            f.write("\n" + "-" * 80 + "\n")
+            f.write(f"STATUS: ERROR - {str(e)}\n")
         raise

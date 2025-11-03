@@ -81,6 +81,20 @@ curl http://localhost:8000/tasks/{task_id}
 # Returns: {"task_id": "...", "status": "success|pending|running|failed", "result": "..."}
 ```
 
+**View task logs:**
+```bash
+# Get complete log (for completed or running tasks)
+curl http://localhost:8000/tasks/{task_id}/logs
+
+# Stream logs in real-time (for running tasks)
+curl "http://localhost:8000/tasks/{task_id}/logs?follow=true"
+```
+
+Logs are stored in `logs/{task_id}.log` and include:
+- Task parameters and command
+- Real-time R script output
+- Final status (SUCCESS/FAILED/TIMEOUT/ERROR)
+
 **Health check:**
 ```bash
 curl http://localhost:8000/health
