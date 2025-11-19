@@ -13,6 +13,17 @@ interface CalibrationParams {
   age_group: string
   data_type: string
   nsim: number
+  // vacalibration parameters
+  mmat_type: "prior" | "fixed" | "samples"
+  path_correction: boolean
+  nMCMC: number
+  nBurn: number
+  nThin: number
+  nChain: number
+  nCore: number
+  seed: number
+  verbose: boolean
+  saveoutput: boolean
 }
 
 interface CalibrationFormProps {
@@ -21,12 +32,24 @@ interface CalibrationFormProps {
 
 export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
   const [loading, setLoading] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const [params, setParams] = useState<CalibrationParams>({
     mode: "full",
     country: "Mozambique",
     age_group: "neonate",
     data_type: "WHO2016",
     nsim: 1000,
+    // vacalibration defaults
+    mmat_type: "prior",
+    path_correction: true,
+    nMCMC: 5000,
+    nBurn: 5000,
+    nThin: 1,
+    nChain: 1,
+    nCore: 1,
+    seed: 1,
+    verbose: true,
+    saveoutput: false,
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,12 +169,22 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
-            <Input
+            <select
               id="country"
               value={params.country}
               onChange={(e) => setParams({ ...params, country: e.target.value })}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               required
-            />
+            >
+              <option value="Mozambique">Mozambique</option>
+              <option value="Bangladesh">Bangladesh</option>
+              <option value="Ethiopia">Ethiopia</option>
+              <option value="Kenya">Kenya</option>
+              <option value="Mali">Mali</option>
+              <option value="Sierra Leone">Sierra Leone</option>
+              <option value="South Africa">South Africa</option>
+              <option value="other">Other</option>
+            </select>
           </div>
 
           <div className="space-y-2">
@@ -168,7 +201,148 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
             </select>
           </div>
 
-          {/* Common Fields for Both Modes */}
+          {/* Advanced vacalibration Parameters */}
+          <div className="border-t pt-4">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+            >
+              <span>{showAdvanced ? "▼" : "▶"}</span>
+              <span>Advanced Calibration Parameters</span>
+            </button>
+
+            {showAdvanced && (
+              <div className="mt-4 space-y-4 bg-gray-50 p-4 rounded-md">
+                {/* Mmat Type */}
+                <div className="space-y-2">
+                  <Label htmlFor="mmat_type">Misclassification Matrix Type</Label>
+                  <select
+                    id="mmat_type"
+                    value={params.mmat_type}
+                    onChange={(e) => setParams({ ...params, mmat_type: e.target.value as "prior" | "fixed" | "samples" })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    <option value="prior">Prior (propagate uncertainty)</option>
+                    <option value="fixed">Fixed (use point estimate)</option>
+                    <option value="samples">Samples (use posterior samples)</option>
+                  </select>
+                  <p className="text-xs text-gray-500">How to treat the misclassification matrix in calibration</p>
+                </div>
+
+                {/* Path Correction */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={params.path_correction}
+                      onChange={(e) => setParams({ ...params, path_correction: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm font-medium">Enable Path Correction</span>
+                  </label>
+                  <p className="text-xs text-gray-500">Apply pathway correction to reduce bias in calibration</p>
+                </div>
+
+                {/* MCMC Parameters */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="nMCMC">MCMC Iterations</Label>
+                    <Input
+                      id="nMCMC"
+                      type="number"
+                      value={params.nMCMC}
+                      onChange={(e) => setParams({ ...params, nMCMC: parseInt(e.target.value) })}
+                    />
+                    <p className="text-xs text-gray-500">Number of MCMC samples to draw</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nBurn">Burn-in</Label>
+                    <Input
+                      id="nBurn"
+                      type="number"
+                      value={params.nBurn}
+                      onChange={(e) => setParams({ ...params, nBurn: parseInt(e.target.value) })}
+                    />
+                    <p className="text-xs text-gray-500">Number of burn-in iterations to discard</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nThin">Thinning</Label>
+                    <Input
+                      id="nThin"
+                      type="number"
+                      value={params.nThin}
+                      onChange={(e) => setParams({ ...params, nThin: parseInt(e.target.value) })}
+                    />
+                    <p className="text-xs text-gray-500">Keep every nth sample (1 = no thinning)</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="nChain">Chains</Label>
+                    <Input
+                      id="nChain"
+                      type="number"
+                      value={params.nChain}
+                      onChange={(e) => setParams({ ...params, nChain: parseInt(e.target.value) })}
+                    />
+                    <p className="text-xs text-gray-500">Number of MCMC chains to run</p>
+                  </div>
+                </div>
+
+                {/* Parallel Processing */}
+                <div className="space-y-2">
+                  <Label htmlFor="nCore">CPU Cores</Label>
+                  <Input
+                    id="nCore"
+                    type="number"
+                    min="1"
+                    value={params.nCore}
+                    onChange={(e) => setParams({ ...params, nCore: parseInt(e.target.value) })}
+                  />
+                  <p className="text-xs text-gray-500">Number of CPU cores for parallel processing</p>
+                </div>
+
+                {/* Random Seed */}
+                <div className="space-y-2">
+                  <Label htmlFor="seed">Random Seed</Label>
+                  <Input
+                    id="seed"
+                    type="number"
+                    value={params.seed}
+                    onChange={(e) => setParams({ ...params, seed: parseInt(e.target.value) })}
+                  />
+                  <p className="text-xs text-gray-500">Set random seed for reproducibility</p>
+                </div>
+
+                {/* Output Options */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium mb-2">Output Options</div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={params.verbose}
+                      onChange={(e) => setParams({ ...params, verbose: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Verbose logging</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={params.saveoutput}
+                      onChange={(e) => setParams({ ...params, saveoutput: e.target.checked })}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Save output to file</span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Submit Button */}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>
