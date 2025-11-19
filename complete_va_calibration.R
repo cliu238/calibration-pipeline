@@ -13,6 +13,18 @@ data_type <- "WHO2016"
 nsim <- 1000
 age_group <- "neonate"
 country <- "Mozambique"
+# vacalibration parameters
+mmat_type <- "prior"
+path_correction <- TRUE
+nMCMC <- 5000
+nBurn <- 5000
+nThin <- 1
+nChain <- 1
+nCore <- 1
+seed <- 1
+verbose <- TRUE
+saveoutput <- FALSE
+plot_it <- FALSE
 
 # Parse arguments (format: --key=value)
 for (arg in args) {
@@ -26,6 +38,28 @@ for (arg in args) {
     age_group <- sub("^--age_group=", "", arg)
   } else if (grepl("^--country=", arg)) {
     country <- sub("^--country=", "", arg)
+  } else if (grepl("^--mmat_type=", arg)) {
+    mmat_type <- sub("^--mmat_type=", "", arg)
+  } else if (grepl("^--path_correction=", arg)) {
+    path_correction <- as.logical(sub("^--path_correction=", "", arg))
+  } else if (grepl("^--nMCMC=", arg)) {
+    nMCMC <- as.integer(sub("^--nMCMC=", "", arg))
+  } else if (grepl("^--nBurn=", arg)) {
+    nBurn <- as.integer(sub("^--nBurn=", "", arg))
+  } else if (grepl("^--nThin=", arg)) {
+    nThin <- as.integer(sub("^--nThin=", "", arg))
+  } else if (grepl("^--nChain=", arg)) {
+    nChain <- as.integer(sub("^--nChain=", "", arg))
+  } else if (grepl("^--nCore=", arg)) {
+    nCore <- as.integer(sub("^--nCore=", "", arg))
+  } else if (grepl("^--seed=", arg)) {
+    seed <- as.integer(sub("^--seed=", "", arg))
+  } else if (grepl("^--verbose=", arg)) {
+    verbose <- as.logical(sub("^--verbose=", "", arg))
+  } else if (grepl("^--saveoutput=", arg)) {
+    saveoutput <- as.logical(sub("^--saveoutput=", "", arg))
+  } else if (grepl("^--plot_it=", arg)) {
+    plot_it <- as.logical(sub("^--plot_it=", "", arg))
   }
 }
 
@@ -56,7 +90,17 @@ calib_insilicova <- vacalibration::vacalibration(
   va_data = insilicova_prep,
   age_group = age_group,
   country = country,
-  plot_it = FALSE
+  Mmat_type = mmat_type,
+  path_correction = path_correction,
+  nMCMC = nMCMC,
+  nBurn = nBurn,
+  nThin = nThin,
+  nChain = nChain,
+  nCore = nCore,
+  seed = seed,
+  verbose = verbose,
+  saveoutput = saveoutput,
+  plot_it = plot_it
 )
 
 # Step 5: Display results

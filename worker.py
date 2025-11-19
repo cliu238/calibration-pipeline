@@ -34,6 +34,18 @@ def run_calibration_task(
     age_group="neonate",
     data_type="WHO2016",
     nsim=1000,
+    # vacalibration parameters
+    mmat_type="prior",
+    path_correction=True,
+    nMCMC=5000,
+    nBurn=5000,
+    nThin=1,
+    nChain=1,
+    nCore=1,
+    seed=1,
+    verbose=True,
+    saveoutput=False,
+    plot_it=False,
 ):
     """Execute the R calibration script with custom parameters"""
     task_id = self.request.id
@@ -60,6 +72,19 @@ def run_calibration_task(
             cmd.append(f"--age_group={age_group}")
             cmd.append(f"--data_type={data_type}")
             cmd.append(f"--nsim={nsim}")
+
+        # Add vacalibration parameters (common to both modes)
+        cmd.append(f"--mmat_type={mmat_type}")
+        cmd.append(f"--path_correction={path_correction}")
+        cmd.append(f"--nMCMC={nMCMC}")
+        cmd.append(f"--nBurn={nBurn}")
+        cmd.append(f"--nThin={nThin}")
+        cmd.append(f"--nChain={nChain}")
+        cmd.append(f"--nCore={nCore}")
+        cmd.append(f"--seed={seed}")
+        cmd.append(f"--verbose={verbose}")
+        cmd.append(f"--saveoutput={saveoutput}")
+        cmd.append(f"--plot_it={plot_it}")
 
         # Write initial log
         with open(log_file, "w") as f:

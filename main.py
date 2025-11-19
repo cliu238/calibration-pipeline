@@ -34,6 +34,17 @@ class CalibrationRequest(BaseModel):
     age_group: str = Field("neonate", description="Age group: neonate, child, adult")
     data_type: str = Field("WHO2016", description="Data type: WHO2016, etc.")
     nsim: int = Field(1000, description="Number of InSilicoVA simulations", gt=0)
+    # vacalibration parameters
+    mmat_type: str = Field("prior", description="Misclassification matrix type: prior, fixed, samples")
+    path_correction: bool = Field(True, description="Enable path correction")
+    nMCMC: int = Field(5000, description="Number of MCMC iterations", gt=0)
+    nBurn: int = Field(5000, description="Number of burn-in iterations", ge=0)
+    nThin: int = Field(1, description="Thinning interval", gt=0)
+    nChain: int = Field(1, description="Number of MCMC chains", gt=0)
+    nCore: int = Field(1, description="Number of CPU cores", gt=0)
+    seed: int = Field(1, description="Random seed")
+    verbose: bool = Field(True, description="Verbose logging")
+    saveoutput: bool = Field(False, description="Save output to file")
 
 
 class TaskResponse(BaseModel):
@@ -71,6 +82,18 @@ def create_calibration_task(request: CalibrationRequest = CalibrationRequest()):
         age_group=request.age_group,
         data_type=request.data_type,
         nsim=request.nsim,
+        # vacalibration parameters
+        mmat_type=request.mmat_type,
+        path_correction=request.path_correction,
+        nMCMC=request.nMCMC,
+        nBurn=request.nBurn,
+        nThin=request.nThin,
+        nChain=request.nChain,
+        nCore=request.nCore,
+        seed=request.seed,
+        verbose=request.verbose,
+        saveoutput=request.saveoutput,
+        plot_it=False,  # Always False to avoid plotting errors in headless environment
     )
     logger.info(f"Created task: {task.id} with params: {request.model_dump()}")
     return TaskResponse(task_id=task.id, status="pending")
