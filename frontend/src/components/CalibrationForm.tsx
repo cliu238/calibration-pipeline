@@ -6,7 +6,9 @@ import { Button } from "./ui/button"
 import { Spinner } from "./ui/spinner"
 
 interface CalibrationParams {
+  mode: "full" | "calibration_only"
   dataset_path?: string
+  calib_data_path?: string
   country: string
   age_group: string
   data_type: string
@@ -20,6 +22,7 @@ interface CalibrationFormProps {
 export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
   const [loading, setLoading] = useState(false)
   const [params, setParams] = useState<CalibrationParams>({
+    mode: "full",
     country: "Mozambique",
     age_group: "neonate",
     data_type: "WHO2016",
@@ -55,17 +58,91 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Mode Selection */}
           <div className="space-y-2">
-            <Label htmlFor="dataset_path">Dataset Path (optional)</Label>
-            <Input
-              id="dataset_path"
-              placeholder="/path/to/dataset.csv"
-              value={params.dataset_path || ""}
-              onChange={(e) =>
-                setParams({ ...params, dataset_path: e.target.value || undefined })
-              }
-            />
+            <Label>Mode</Label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="full"
+                  checked={params.mode === "full"}
+                  onChange={(e) => setParams({ ...params, mode: e.target.value as "full" })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Full Pipeline (Steps 1-5)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="calibration_only"
+                  checked={params.mode === "calibration_only"}
+                  onChange={(e) => setParams({ ...params, mode: e.target.value as "calibration_only" })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Calibration Only (Steps 4-5)</span>
+              </label>
+            </div>
           </div>
+
+          {/* Full Mode Fields */}
+          {params.mode === "full" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="dataset_path">Dataset Path (optional)</Label>
+                <Input
+                  id="dataset_path"
+                  placeholder="/path/to/dataset.csv"
+                  value={params.dataset_path || ""}
+                  onChange={(e) =>
+                    setParams({ ...params, dataset_path: e.target.value || undefined })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="data_type">Data Type</Label>
+                <Input
+                  id="data_type"
+                  value={params.data_type}
+                  onChange={(e) => setParams({ ...params, data_type: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="nsim">Number of Simulations</Label>
+                <Input
+                  id="nsim"
+                  type="number"
+                  value={params.nsim}
+                  onChange={(e) => setParams({ ...params, nsim: parseInt(e.target.value) })}
+                  required
+                />
+              </div>
+            </>
+          )}
+
+          {/* Calibration Only Mode Fields */}
+          {params.mode === "calibration_only" && (
+            <div className="space-y-2">
+              <Label htmlFor="calib_data_path">Calibration Data Path (required)</Label>
+              <Input
+                id="calib_data_path"
+                placeholder="/path/to/calibration_data.rds"
+                value={params.calib_data_path || ""}
+                onChange={(e) =>
+                  setParams({ ...params, calib_data_path: e.target.value || undefined })
+                }
+                required
+              />
+              <p className="text-xs text-gray-500">
+                RDS file containing prepared InSilicoVA output
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
@@ -91,27 +168,7 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="data_type">Data Type</Label>
-            <Input
-              id="data_type"
-              value={params.data_type}
-              onChange={(e) => setParams({ ...params, data_type: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="nsim">Number of Simulations</Label>
-            <Input
-              id="nsim"
-              type="number"
-              value={params.nsim}
-              onChange={(e) => setParams({ ...params, nsim: parseInt(e.target.value) })}
-              required
-            />
-          </div>
-
+          {/* Common Fields for Both Modes */}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>

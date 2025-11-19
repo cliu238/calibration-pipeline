@@ -15,7 +15,7 @@ app = FastAPI(title="VA Calibration API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Frontend URL
+    allow_origins=["http://localhost:5173", "http://localhost:5174"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,8 +23,12 @@ app.add_middleware(
 
 
 class CalibrationRequest(BaseModel):
+    mode: str = Field("full", description="Mode: 'full' (steps 1-5) or 'calibration_only' (steps 4-5)")
     dataset_path: str | None = Field(
-        None, description="Path to CSV dataset (optional, uses sample if not provided)"
+        None, description="Path to CSV dataset (optional for full mode, uses sample if not provided)"
+    )
+    calib_data_path: str | None = Field(
+        None, description="Path to prepared calibration data (required for calibration_only mode)"
     )
     country: str = Field("Mozambique", description="Country for calibration")
     age_group: str = Field("neonate", description="Age group: neonate, child, adult")
@@ -52,8 +56,17 @@ def root():
 @app.post("/tasks/calibration", response_model=TaskResponse)
 def create_calibration_task(request: CalibrationRequest = CalibrationRequest()):
     """Start a new VA calibration task with custom parameters"""
+    # Validate mode-specific requirements
+    if request.mode == "calibration_only" and not request.calib_data_path:
+        raise HTTPException(
+            status_code=400,
+            detail="calib_data_path is required for calibration_only mode"
+        )
+
     task = run_calibration_task.delay(
+        mode=request.mode,
         dataset_path=request.dataset_path,
+        calib_data_path=request.calib_data_path,
         country=request.country,
         age_group=request.age_group,
         data_type=request.data_type,

@@ -27,7 +27,9 @@ celery_app.conf.update(
 @celery_app.task(bind=True, name="run_calibration")
 def run_calibration_task(
     self,
+    mode="full",
     dataset_path=None,
+    calib_data_path=None,
     country="Mozambique",
     age_group="neonate",
     data_type="WHO2016",
@@ -37,27 +39,37 @@ def run_calibration_task(
     task_id = self.request.id
     log_file = f"logs/{task_id}.log"
 
-    logger.info(f"Starting calibration task: {task_id}")
+    logger.info(f"Starting calibration task: {task_id} (mode: {mode})")
     logger.info(
         f"Parameters: dataset={dataset_path}, country={country}, age_group={age_group}"
     )
 
     try:
-        # Build R script command with parameters
-        cmd = ["Rscript", "complete_va_calibration.R"]
-
-        if dataset_path:
-            cmd.append(f"--dataset={dataset_path}")
-        cmd.append(f"--country={country}")
-        cmd.append(f"--age_group={age_group}")
-        cmd.append(f"--data_type={data_type}")
-        cmd.append(f"--nsim={nsim}")
+        # Build R script command based on mode
+        if mode == "calibration_only":
+            cmd = ["Rscript", "calibration_only.R"]
+            if calib_data_path:
+                cmd.append(f"--calib_data={calib_data_path}")
+            cmd.append(f"--country={country}")
+            cmd.append(f"--age_group={age_group}")
+        else:  # full mode
+            cmd = ["Rscript", "complete_va_calibration.R"]
+            if dataset_path:
+                cmd.append(f"--dataset={dataset_path}")
+            cmd.append(f"--country={country}")
+            cmd.append(f"--age_group={age_group}")
+            cmd.append(f"--data_type={data_type}")
+            cmd.append(f"--nsim={nsim}")
 
         # Write initial log
         with open(log_file, "w") as f:
             f.write(f"Task ID: {task_id}\n")
+            f.write(f"Mode: {mode}\n")
             f.write(f"Command: {' '.join(cmd)}\n")
-            f.write(f"Parameters: country={country}, age_group={age_group}, nsim={nsim}\n")
+            if mode == "calibration_only":
+                f.write(f"Parameters: calib_data={calib_data_path}, country={country}, age_group={age_group}\n")
+            else:
+                f.write(f"Parameters: dataset={dataset_path}, country={country}, age_group={age_group}, nsim={nsim}\n")
             f.write("-" * 80 + "\n\n")
 
         # Run the R script with live output streaming to log file
@@ -85,7 +97,25 @@ def run_calibration_task(
             with open(log_file, "a") as f:
                 f.write("\n" + "-" * 80 + "\n")
                 f.write("STATUS: SUCCESS\n")
-            return {"output": output, "status": "success", "log_file": log_file}
+
+            # Try to extract JSON results from output
+            import json
+            import re
+            result_data = None
+            json_match = re.search(r'___JSON_RESULT_START___\n(.*?)\n___JSON_RESULT_END___', output, re.DOTALL)
+            if json_match:
+                try:
+                    result_data = json.loads(json_match.group(1))
+                    logger.info(f"Parsed structured results for task {task_id}")
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse JSON results: {e}")
+
+            return {
+                "output": output,
+                "status": "success",
+                "log_file": log_file,
+                "result_data": result_data
+            }
         else:
             logger.error(f"Task {task_id} failed")
             with open(log_file, "a") as f:

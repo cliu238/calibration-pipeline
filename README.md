@@ -1,120 +1,85 @@
 # VA Calibration Pipeline
 
-Backend service for running Verbal Autopsy calibration tasks using FastAPI, Celery, and Redis.
+## Overview
 
-## Prerequisites
+This project provides an end-to-end pipeline for Verbal Autopsy (VA) analysis and calibration. It automates the process of analyzing cause of death data and calibrating prediction models to improve accuracy in mortality surveillance systems.
 
-- Python 3.10+
-- R with packages: `openVA`, `vacalibration`
-- Docker (for Redis)
-- Conda (recommended)
+## Purpose
 
-## Setup
+Verbal autopsy is a method used to determine causes of death in populations where medical death certification is not available. This pipeline streamlines the entire workflow from raw VA data to calibrated predictions, making it easier for researchers and public health professionals to obtain accurate cause of death estimates.
 
-1. Start Redis:
-```bash
-docker-compose up -d
-```
+## Key Functions
 
-2. Create conda environment and install dependencies:
-```bash
-conda create -n va-calibration python=3.11 -y
-conda activate va-calibration
-uv pip install -r requirements.txt
-```
+### VA Analysis
+- Processes verbal autopsy survey data to predict causes of death
+- Uses **openVA** framework for comprehensive VA analysis
+- Supports multiple age groups (neonate, child, adult)
+- Handles country-specific data configurations
 
-3. Install R packages (if not already installed):
-```R
-install.packages(c("openVA", "vacalibration"))
-```
+### Model Calibration
+- Calibrates VA prediction models using the **vaCalibrate** package
+- Improves prediction accuracy by adjusting model parameters based on gold standard data
+- Runs iterative simulations to optimize model performance
+- Generates calibrated cause-specific mortality fractions (CSMF)
 
-## Running
+### Two Operating Modes
 
-Start the services in separate terminals:
+#### Full Pipeline Mode (Steps 1-5)
+Runs the complete VA analysis and calibration workflow:
+1. **Data Input**: Upload or use sample VA datasets
+2. **Analysis**: Process VA data through openVA/InSilicoVA algorithms
+3. **Preparation**: Prepare data for calibration
+4. **Calibration**: Apply vaCalibrate to refine predictions
+5. **Results**: View calibrated outputs and performance metrics
 
-**Terminal 1 - FastAPI server:**
-```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
+**Use this mode when**: Starting with raw VA data and need complete analysis
 
-**Terminal 2 - Celery worker:**
-```bash
-celery -A worker.celery_app worker --loglevel=info
-```
+#### Calibration-Only Mode (Steps 4-5)
+Runs only the calibration and results steps using pre-prepared data:
+4. **Calibration**: Apply vaCalibrate with different parameters (country, age group)
+5. **Results**: View calibrated outputs and performance metrics
 
-## API Usage
+**Use this mode when**:
+- You've already run InSilicoVA analysis and have prepared calibration data
+- You want to experiment with different calibration parameters (country, age group)
+- You want to skip the time-consuming InSilicoVA step
 
-**Create a calibration task (with default sample dataset):**
-```bash
-curl -X POST http://localhost:8000/tasks/calibration
-# Returns: {"task_id": "...", "status": "pending"}
-```
+### Real-time Monitoring
+Track analysis progress with live logs for both modes
 
-**Create a calibration task with custom parameters:**
-```bash
-curl -X POST http://localhost:8000/tasks/calibration \
-  -H "Content-Type: application/json" \
-  -d '{
-    "country": "Tanzania",
-    "age_group": "child",
-    "nsim": 500
-  }'
-```
+## Use Cases
 
-**With custom dataset**
-```bash
-curl -X POST http://localhost:8000/tasks/calibration \
-  -H "Content-Type: application/json" \
-  -d '{"dataset_path": "/path/to/data.csv", "country": "Kenya"}'
-```
+- **Public Health Research**: Improve accuracy of mortality statistics in low-resource settings
+- **Epidemiological Studies**: Generate reliable cause of death distributions for population health analysis
+- **Health Policy**: Inform evidence-based decision making with calibrated mortality data
+- **Surveillance Systems**: Enhance automated VA analysis pipelines with calibration capabilities
 
-**Available parameters:**
-- `dataset_path` (optional): Path to custom CSV dataset (default: uses sample NeonatesVA5)
-- `country` (default: "Mozambique"): Country for calibration
-- `age_group` (default: "neonate"): Age group - neonate, child, or adult
-- `data_type` (default: "WHO2016"): Data type format
-- `nsim` (default: 1000): Number of InSilicoVA simulations
+## Benefits
 
-**Check task status:**
-```bash
-curl http://localhost:8000/tasks/{task_id}
-# Returns: {"task_id": "...", "status": "success|pending|running|failed", "result": "..."}
-```
+- **Automated**: Eliminates manual steps in the VA calibration process
+- **Accessible**: Web-based interface requires no programming knowledge
+- **Transparent**: Real-time logs show analysis progress
+- **Flexible**: Supports custom datasets and configurable parameters
+- **Accurate**: Improves VA predictions through statistical calibration
+- **Efficient**: Calibration-only mode allows rapid experimentation with different parameters
 
-**View task logs:**
-```bash
-# Get complete log (for completed or running tasks)
-curl http://localhost:8000/tasks/{task_id}/logs
+## Workflow Examples
 
-# Stream logs in real-time (for running tasks)
-curl "http://localhost:8000/tasks/{task_id}/logs?follow=true"
-```
+### Example 1: Full Pipeline
+1. Select "Full Pipeline" mode
+2. (Optional) Provide path to your VA dataset CSV
+3. Configure parameters (country, age group, data type, simulations)
+4. Submit and monitor progress
+5. View calibrated results
 
-Logs are stored in `logs/{task_id}.log` and include:
-- Task parameters and command
-- Real-time R script output
-- Final status (SUCCESS/FAILED/TIMEOUT/ERROR)
+### Example 2: Calibration-Only Workflow
+1. First, prepare calibration data using the helper script:
+   ```bash
+   Rscript prepare_and_save_calibration_data.R --dataset=my_data.csv --output=my_calib_data.rds
+   ```
+2. Select "Calibration-Only" mode in the UI
+3. Provide path to the prepared calibration data (`.rds` file)
+4. Try different calibration parameters (country, age group)
+5. Compare results across different calibrations
 
-**Health check:**
-```bash
-curl http://localhost:8000/health
-```
-
-**API Documentation:**
-Visit http://localhost:8000/docs for interactive Swagger UI
-
-## Direct R Script Usage
-
-**With sample dataset (default):**
-```bash
-Rscript complete_va_calibration.R
-```
-
-**With custom parameters:**
-```bash
-Rscript complete_va_calibration.R \
-  --dataset=/path/to/data.csv \
-  --country=Tanzania \
-  --age_group=child \
-  --nsim=500
-```
+This two-mode approach saves significant time when you need to run calibrations with different parameters on the same dataset.

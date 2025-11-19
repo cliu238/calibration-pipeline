@@ -3,10 +3,38 @@ import { Card, CardHeader, CardTitle, CardContent } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Spinner } from "./ui/spinner"
 
+interface CalibrationCause {
+  cause: string[]
+  calibrated_csmf: number[]
+  uncalibrated_csmf: number[]
+}
+
+interface CalibrationResult {
+  mode?: string[]
+  country?: string[]
+  age_group?: string[]
+  data_type?: string[]
+  nsim?: number
+  n_deaths?: number
+  top_causes?: CalibrationCause[]
+  summary?: {
+    total_causes?: number[]
+    calibrated?: boolean[]
+  }
+}
+
+interface TaskResult {
+  output?: string
+  status?: string
+  log_file?: string
+  result_data?: CalibrationResult
+}
+
 interface Task {
   task_id: string
   status: "pending" | "running" | "success" | "failed"
-  result?: string
+  result?: TaskResult
+  error?: string
 }
 
 interface TaskStatusProps {
@@ -99,14 +127,97 @@ export function TaskStatus({ taskId }: TaskStatusProps) {
               <span className="text-sm font-medium">Status:</span>
               {getStatusBadge(task.status)}
             </div>
-            {task.result && (
+            {task.error && (
               <div className="space-y-2">
-                <span className="text-sm font-medium">Result:</span>
-                <pre className="text-sm bg-gray-100 p-4 rounded-lg overflow-auto max-h-48">
-                  {typeof task.result === 'object'
-                    ? JSON.stringify(task.result, null, 2)
-                    : task.result}
-                </pre>
+                <span className="text-sm font-medium text-red-600">Error:</span>
+                <p className="text-sm text-red-600 bg-red-50 p-3 rounded">{task.error}</p>
+              </div>
+            )}
+            {task.result?.result_data && (
+              <div className="space-y-3 mt-4">
+                <div className="border-t pt-3">
+                  <h4 className="text-sm font-semibold mb-3">Calibration Results</h4>
+
+                  {/* Metadata */}
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-4">
+                    {task.result.result_data.mode && (
+                      <div>
+                        <span className="text-gray-600">Mode:</span>{" "}
+                        <span className="font-medium">{task.result.result_data.mode[0]}</span>
+                      </div>
+                    )}
+                    {task.result.result_data.country && (
+                      <div>
+                        <span className="text-gray-600">Country:</span>{" "}
+                        <span className="font-medium">{task.result.result_data.country[0]}</span>
+                      </div>
+                    )}
+                    {task.result.result_data.age_group && (
+                      <div>
+                        <span className="text-gray-600">Age Group:</span>{" "}
+                        <span className="font-medium">{task.result.result_data.age_group[0]}</span>
+                      </div>
+                    )}
+                    {task.result.result_data.n_deaths && (
+                      <div>
+                        <span className="text-gray-600">Deaths:</span>{" "}
+                        <span className="font-medium">{task.result.result_data.n_deaths}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Top Causes Table */}
+                  {task.result.result_data.top_causes && task.result.result_data.top_causes.length > 0 && (
+                    <div>
+                      <h5 className="text-xs font-semibold text-gray-700 mb-2">Top Causes of Death (CSMF)</h5>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50 border-b">
+                              <th className="text-left p-2 font-medium text-gray-700">Rank</th>
+                              <th className="text-left p-2 font-medium text-gray-700">Cause</th>
+                              <th className="text-right p-2 font-medium text-gray-700">Uncalibrated</th>
+                              <th className="text-right p-2 font-medium text-gray-700">Calibrated</th>
+                              <th className="text-right p-2 font-medium text-gray-700">Change</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {task.result.result_data.top_causes.map((cause, idx) => {
+                              const uncalib = cause.uncalibrated_csmf[0] * 100
+                              const calib = cause.calibrated_csmf[0] * 100
+                              const change = calib - uncalib
+                              const changeClass = change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-600'
+
+                              return (
+                                <tr key={idx} className="border-b hover:bg-gray-50">
+                                  <td className="p-2 text-gray-600">{idx + 1}</td>
+                                  <td className="p-2 font-medium">{cause.cause[0]}</td>
+                                  <td className="p-2 text-right text-gray-600">{uncalib.toFixed(2)}%</td>
+                                  <td className="p-2 text-right font-semibold">{calib.toFixed(2)}%</td>
+                                  <td className={`p-2 text-right text-xs ${changeClass}`}>
+                                    {change > 0 ? '+' : ''}{change.toFixed(2)}%
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  {task.result.result_data.summary && (
+                    <div className="mt-3 text-xs text-gray-600">
+                      {task.result.result_data.summary.total_causes && (
+                        <span>Total causes analyzed: {task.result.result_data.summary.total_causes[0]}</span>
+                      )}
+                      {task.result.result_data.summary.calibrated && task.result.result_data.summary.calibrated[0] && (
+                        <Badge variant="success" className="ml-2 text-xs">Calibrated</Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
