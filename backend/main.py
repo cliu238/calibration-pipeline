@@ -23,7 +23,7 @@ app.add_middleware(
 
 
 class CalibrationRequest(BaseModel):
-    mode: str = Field("full", description="Mode: 'full' (steps 1-5) or 'calibration_only' (steps 4-5)")
+    mode: str = Field("full", description="Mode: 'full' (steps 1-5), 'calibration_only' (steps 4-5), or 'ensemble' (multi-algorithm)")
     dataset_path: str | None = Field(
         None, description="Path to CSV dataset (optional for full mode, uses sample if not provided)"
     )
@@ -45,6 +45,10 @@ class CalibrationRequest(BaseModel):
     seed: int = Field(1, description="Random seed")
     verbose: bool = Field(True, description="Verbose logging")
     saveoutput: bool = Field(False, description="Save output to file")
+    # ensemble calibration parameters
+    eava_path: str | None = Field(None, description="Path to EAVA algorithm output (.rds)")
+    insilicova_path: str | None = Field(None, description="Path to InSilicoVA algorithm output (.rds)")
+    interva_path: str | None = Field(None, description="Path to InterVA algorithm output (.rds)")
 
 
 class TaskResponse(BaseModel):
@@ -73,6 +77,13 @@ def create_calibration_task(request: CalibrationRequest = CalibrationRequest()):
             status_code=400,
             detail="calib_data_path is required for calibration_only mode"
         )
+    if request.mode == "ensemble":
+        # At least one algorithm path is required for ensemble mode
+        if not any([request.eava_path, request.insilicova_path, request.interva_path]):
+            raise HTTPException(
+                status_code=400,
+                detail="At least one algorithm path (eava_path, insilicova_path, or interva_path) is required for ensemble mode"
+            )
 
     task = run_calibration_task.delay(
         mode=request.mode,
@@ -94,6 +105,10 @@ def create_calibration_task(request: CalibrationRequest = CalibrationRequest()):
         verbose=request.verbose,
         saveoutput=request.saveoutput,
         plot_it=False,  # Always False to avoid plotting errors in headless environment
+        # ensemble calibration parameters
+        eava_path=request.eava_path,
+        insilicova_path=request.insilicova_path,
+        interva_path=request.interva_path,
     )
     logger.info(f"Created task: {task.id} with params: {request.model_dump()}")
     return TaskResponse(task_id=task.id, status="pending")

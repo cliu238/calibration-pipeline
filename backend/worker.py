@@ -46,6 +46,10 @@ def run_calibration_task(
     verbose=True,
     saveoutput=False,
     plot_it=False,
+    # ensemble calibration parameters
+    eava_path=None,
+    insilicova_path=None,
+    interva_path=None,
 ):
     """Execute the R calibration script with custom parameters"""
     task_id = self.request.id
@@ -58,7 +62,17 @@ def run_calibration_task(
 
     try:
         # Build R script command based on mode
-        if mode == "calibration_only":
+        if mode == "ensemble":
+            cmd = ["Rscript", "scripts/ensemble_calibration.R"]
+            if eava_path:
+                cmd.append(f"--eava={eava_path}")
+            if insilicova_path:
+                cmd.append(f"--insilicova={insilicova_path}")
+            if interva_path:
+                cmd.append(f"--interva={interva_path}")
+            cmd.append(f"--country={country}")
+            cmd.append(f"--age_group={age_group}")
+        elif mode == "calibration_only":
             cmd = ["Rscript", "scripts/calibration_only.R"]
             if calib_data_path:
                 cmd.append(f"--calib_data={calib_data_path}")
@@ -91,7 +105,16 @@ def run_calibration_task(
             f.write(f"Task ID: {task_id}\n")
             f.write(f"Mode: {mode}\n")
             f.write(f"Command: {' '.join(cmd)}\n")
-            if mode == "calibration_only":
+            if mode == "ensemble":
+                algos = []
+                if eava_path:
+                    algos.append(f"eava={eava_path}")
+                if insilicova_path:
+                    algos.append(f"insilicova={insilicova_path}")
+                if interva_path:
+                    algos.append(f"interva={interva_path}")
+                f.write(f"Parameters: {', '.join(algos)}, country={country}, age_group={age_group}\n")
+            elif mode == "calibration_only":
                 f.write(f"Parameters: calib_data={calib_data_path}, country={country}, age_group={age_group}\n")
             else:
                 f.write(f"Parameters: dataset={dataset_path}, country={country}, age_group={age_group}, nsim={nsim}\n")

@@ -6,7 +6,7 @@ import { Button } from "./ui/button"
 import { Spinner } from "./ui/spinner"
 
 interface CalibrationParams {
-  mode: "full" | "calibration_only"
+  mode: "full" | "calibration_only" | "ensemble"
   dataset_path?: string
   calib_data_path?: string
   country: string
@@ -24,6 +24,10 @@ interface CalibrationParams {
   seed: number
   verbose: boolean
   saveoutput: boolean
+  // ensemble calibration parameters
+  eava_path?: string
+  insilicova_path?: string
+  interva_path?: string
 }
 
 interface CalibrationFormProps {
@@ -84,7 +88,7 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
           {/* Mode Selection */}
           <div className="space-y-2">
             <Label>Mode</Label>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
@@ -106,6 +110,17 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
                   className="w-4 h-4"
                 />
                 <span className="text-sm">Calibration Only (Steps 4-5)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="mode"
+                  value="ensemble"
+                  checked={params.mode === "ensemble"}
+                  onChange={(e) => setParams({ ...params, mode: e.target.value as "ensemble" })}
+                  className="w-4 h-4"
+                />
+                <span className="text-sm">Ensemble Calibration</span>
               </label>
             </div>
           </div>
@@ -164,6 +179,54 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
               <p className="text-xs text-gray-500">
                 RDS file containing prepared InSilicoVA output
               </p>
+            </div>
+          )}
+
+          {/* Ensemble Mode Fields */}
+          {params.mode === "ensemble" && (
+            <div className="space-y-4 bg-blue-50 p-4 rounded-md">
+              <p className="text-sm text-blue-700 mb-2">
+                Provide at least one algorithm output file. Multiple algorithms will be combined for ensemble calibration.
+              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="eava_path">EAVA Output Path</Label>
+                <Input
+                  id="eava_path"
+                  placeholder="/path/to/eava_output.rds"
+                  value={params.eava_path || ""}
+                  onChange={(e) =>
+                    setParams({ ...params, eava_path: e.target.value || undefined })
+                  }
+                />
+                <p className="text-xs text-gray-500">RDS file with EAVA algorithm output matrix</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="insilicova_path">InSilicoVA Output Path</Label>
+                <Input
+                  id="insilicova_path"
+                  placeholder="/path/to/insilicova_output.rds"
+                  value={params.insilicova_path || ""}
+                  onChange={(e) =>
+                    setParams({ ...params, insilicova_path: e.target.value || undefined })
+                  }
+                />
+                <p className="text-xs text-gray-500">RDS file with InSilicoVA algorithm output matrix</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="interva_path">InterVA Output Path</Label>
+                <Input
+                  id="interva_path"
+                  placeholder="/path/to/interva_output.rds"
+                  value={params.interva_path || ""}
+                  onChange={(e) =>
+                    setParams({ ...params, interva_path: e.target.value || undefined })
+                  }
+                />
+                <p className="text-xs text-gray-500">RDS file with InterVA algorithm output matrix</p>
+              </div>
             </div>
           )}
 

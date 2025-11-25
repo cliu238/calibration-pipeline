@@ -9,6 +9,11 @@ interface CalibrationCause {
   uncalibrated_csmf: number[]
 }
 
+interface EnsembleAlgorithmResult {
+  algorithm: string[]
+  top_causes: CalibrationCause[]
+}
+
 interface CalibrationResult {
   mode?: string[]
   country?: string[]
@@ -17,8 +22,13 @@ interface CalibrationResult {
   nsim?: number
   n_deaths?: number
   top_causes?: CalibrationCause[]
+  // ensemble-specific fields
+  algorithms_used?: string[]
+  algorithm_results?: Record<string, EnsembleAlgorithmResult>
   summary?: {
     total_causes?: number[]
+    total_algorithms?: number[]
+    has_ensemble?: boolean[]
     calibrated?: boolean[]
   }
 }
@@ -166,7 +176,7 @@ export function TaskStatus({ taskId }: TaskStatusProps) {
                     )}
                   </div>
 
-                  {/* Top Causes Table */}
+                  {/* Top Causes Table (for non-ensemble modes) */}
                   {task.result.result_data.top_causes && task.result.result_data.top_causes.length > 0 && (
                     <div>
                       <h5 className="text-xs font-semibold text-gray-700 mb-2">Top Causes of Death (CSMF)</h5>
@@ -203,6 +213,51 @@ export function TaskStatus({ taskId }: TaskStatusProps) {
                           </tbody>
                         </table>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Ensemble Results */}
+                  {task.result.result_data.algorithm_results && (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h5 className="text-xs font-semibold text-gray-700">Ensemble Calibration Results</h5>
+                        {task.result.result_data.algorithms_used && (
+                          <span className="text-xs text-gray-500">
+                            ({task.result.result_data.algorithms_used.join(', ')})
+                          </span>
+                        )}
+                      </div>
+
+                      {Object.entries(task.result.result_data.algorithm_results).map(([algoName, algoResult]) => (
+                        <div key={algoName} className="border rounded-md p-3">
+                          <h6 className="text-xs font-semibold text-blue-700 mb-2 uppercase">
+                            {algoName === 'ensemble' ? '📊 Ensemble (Combined)' : `🔬 ${algoName}`}
+                          </h6>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-gray-50 border-b">
+                                  <th className="text-left p-1 font-medium text-gray-700">Rank</th>
+                                  <th className="text-left p-1 font-medium text-gray-700">Cause</th>
+                                  <th className="text-right p-1 font-medium text-gray-700">Calibrated CSMF</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {algoResult.top_causes?.map((cause, idx) => {
+                                  const calib = (cause.calibrated_csmf?.[0] ?? cause.calibrated_csmf) as number * 100
+                                  return (
+                                    <tr key={idx} className="border-b hover:bg-gray-50">
+                                      <td className="p-1 text-gray-600">{idx + 1}</td>
+                                      <td className="p-1 font-medium">{cause.cause?.[0] ?? cause.cause}</td>
+                                      <td className="p-1 text-right font-semibold">{calib.toFixed(2)}%</td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
