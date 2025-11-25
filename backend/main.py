@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
-from worker import run_calibration_task, celery_app
+from backend.worker import run_calibration_task, celery_app
 import logging
 import os
 import asyncio

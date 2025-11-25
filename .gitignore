@@ -4,11 +4,18 @@ __pycache__/
 *.pyo
 *.pyd
 .Python
+.venv/
+venv/
+env/
 
 # Logs
 logs/*.log
 
 # Environment
 .env
-venv/
-env/
+
+# macOS
+.DS_Store
+
+# uv
+.python-version

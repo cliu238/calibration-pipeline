@@ -59,13 +59,13 @@ def run_calibration_task(
     try:
         # Build R script command based on mode
         if mode == "calibration_only":
-            cmd = ["Rscript", "calibration_only.R"]
+            cmd = ["Rscript", "scripts/calibration_only.R"]
             if calib_data_path:
                 cmd.append(f"--calib_data={calib_data_path}")
             cmd.append(f"--country={country}")
             cmd.append(f"--age_group={age_group}")
         else:  # full mode
-            cmd = ["Rscript", "complete_va_calibration.R"]
+            cmd = ["Rscript", "scripts/complete_va_calibration.R"]
             if dataset_path:
                 cmd.append(f"--dataset={dataset_path}")
             cmd.append(f"--country={country}")

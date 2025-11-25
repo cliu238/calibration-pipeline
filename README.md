@@ -75,7 +75,7 @@ Track analysis progress with live logs for both modes
 ### Example 2: Calibration-Only Workflow
 1. First, prepare calibration data using the helper script:
    ```bash
-   Rscript prepare_and_save_calibration_data.R --dataset=my_data.csv --output=my_calib_data.rds
+   Rscript scripts/prepare_and_save_calibration_data.R --dataset=my_data.csv --output=my_calib_data.rds
    ```
 2. Select "Calibration-Only" mode in the UI
 3. Provide path to the prepared calibration data (`.rds` file)
@@ -83,3 +83,42 @@ Track analysis progress with live logs for both modes
 5. Compare results across different calibrations
 
 This two-mode approach saves significant time when you need to run calibrations with different parameters on the same dataset.
+
+## Project Structure
+
+```
+calibration-pipeline/
+├── backend/              # Python FastAPI application
+│   ├── main.py          # API endpoints
+│   └── worker.py        # Celery task workers
+├── scripts/             # R calibration scripts
+│   ├── calibration_only.R
+│   ├── complete_va_calibration.R
+│   └── prepare_and_save_calibration_data.R
+├── data/                # Test and sample data
+├── frontend/            # React + TypeScript UI
+├── logs/                # Runtime task logs
+├── pyproject.toml       # Python dependencies (uv)
+└── docker-compose.yml   # Redis service
+```
+
+## Setup
+
+### Using uv (recommended)
+```bash
+# Install dependencies
+uv sync
+
+# Run API server
+uv run uvicorn backend.main:app --reload --port 8000
+
+# Run Celery worker
+uv run celery -A backend.worker.celery_app worker --loglevel=info
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm run dev
+```

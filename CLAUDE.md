@@ -1,4 +1,4 @@
-- when use python, use conda venv, and uv to install package
+- when use python, uv to install package and manage env
 - always use simplest code and structure, don't over enginnering
 - don't create unnecessary files. When creating new version of a file, archive or delete the legacy file
 - keep log simple
