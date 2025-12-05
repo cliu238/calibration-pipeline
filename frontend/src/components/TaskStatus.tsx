@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { Spinner } from "./ui/spinner"
+import { API_URL } from "../config"
 
 interface CalibrationCause {
   cause: string[]
@@ -61,7 +62,7 @@ export function TaskStatus({ taskId }: TaskStatusProps) {
     const fetchStatus = async () => {
       setLoading(true)
       try {
-        const response = await fetch(`http://localhost:8000/tasks/${taskId}`)
+        const response = await fetch(`${API_URL}/tasks/${taskId}`)
         const data = await response.json()
         setTask(data)
       } catch (error) {

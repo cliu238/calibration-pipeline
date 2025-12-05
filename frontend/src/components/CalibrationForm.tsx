@@ -4,6 +4,7 @@ import { Label } from "./ui/label"
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
 import { Spinner } from "./ui/spinner"
+import { API_URL } from "../config"
 
 interface CalibrationParams {
   mode: "full" | "calibration_only" | "ensemble"
@@ -61,7 +62,7 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
     setLoading(true)
 
     try {
-      const response = await fetch("http://localhost:8000/tasks/calibration", {
+      const response = await fetch(`${API_URL}/tasks/calibration`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

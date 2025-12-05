@@ -1,0 +1,91 @@
+# Backend Dockerfile - Python + R for VA Calibration
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install system dependencies, R, Python, and Java (for rJava)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    r-base \
+    r-base-dev \
+    python3.12 \
+    python3.12-venv \
+    python3-pip \
+    default-jdk \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libxml2-dev \
+    libfontconfig1-dev \
+    libharfbuzz-dev \
+    libfribidi-dev \
+    libfreetype6-dev \
+    libpng-dev \
+    libtiff5-dev \
+    libjpeg-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Configure Java for R
+RUN R CMD javareconf
+
+# Install R packages from CRAN
+# Note: vacalibration must be installed from source to compile Stan models for ARM64
+RUN R -e "install.packages(c('remotes', 'jsonlite', 'rJava'), repos='https://cloud.r-project.org/')"
+
+# Install rstan dependencies first (needed for compiling Stan models)
+RUN R -e "install.packages(c('StanHeaders', 'rstan'), repos='https://cloud.r-project.org/')"
+
+# Install vacalibration from CRAN
+RUN R -e "install.packages('vacalibration', repos='https://cloud.r-project.org/')"
+
+# Recompile Stan models for ARM64 architecture
+# The CRAN package contains pre-compiled .rds files for x86_64 that don't work on ARM64
+RUN R -e "\
+library(rstan); \
+library(vacalibration); \
+pkg_path <- system.file(package='vacalibration'); \
+stan_dir <- file.path(pkg_path, 'stan'); \
+cat('Recompiling Stan models for ARM64...\\n'); \
+cat('Stan directory:', stan_dir, '\\n'); \
+seqcalib_stan <- file.path(stan_dir, 'seqcalib.stan'); \
+seqcalib_mmat_stan <- file.path(stan_dir, 'seqcalib_mmat.stan'); \
+if (file.exists(seqcalib_stan)) { \
+  cat('Compiling seqcalib.stan...\\n'); \
+  mod1 <- stan_model(seqcalib_stan); \
+  saveRDS(mod1, file.path(stan_dir, 'seqcalib.rds')); \
+  cat('seqcalib.rds compiled successfully\\n'); \
+}; \
+if (file.exists(seqcalib_mmat_stan)) { \
+  cat('Compiling seqcalib_mmat.stan...\\n'); \
+  mod2 <- stan_model(seqcalib_mmat_stan); \
+  saveRDS(mod2, file.path(stan_dir, 'seqcalib_mmat.rds')); \
+  cat('seqcalib_mmat.rds compiled successfully\\n'); \
+}; \
+cat('Stan models recompiled for ARM64\\n');"
+
+# Install openVA from GitHub (depends on rJava being installed first)
+RUN R -e "remotes::install_github('verbal-autopsy-software/openVA')"
+
+WORKDIR /app
+
+# Copy Python requirements and install
+COPY pyproject.toml ./
+RUN python3.12 -m pip install --break-system-packages --no-cache-dir \
+    fastapi==0.115.5 \
+    uvicorn==0.32.1 \
+    celery==5.4.0 \
+    redis==5.2.0 \
+    pydantic==2.10.3
+
+# Copy application code
+COPY backend/ ./backend/
+COPY scripts/ ./scripts/
+
+# Create logs directory
+RUN mkdir -p logs data
+
+EXPOSE 8000
+
+# Default command (can be overridden in docker-compose)
+CMD ["python3.12", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

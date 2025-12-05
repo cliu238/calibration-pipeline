@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "./ui/card"
 import { Terminal } from "./ui/terminal"
 import { Button } from "./ui/button"
 import { Spinner } from "./ui/spinner"
+import { API_URL } from "../config"
 
 interface LogViewerProps {
   taskId: string | null
@@ -38,7 +39,7 @@ export function LogViewer({ taskId }: LogViewerProps) {
       const controller = new AbortController()
       abortControllerRef.current = controller
 
-      const url = `http://localhost:8000/tasks/${taskId}/logs${follow ? "?follow=true" : ""}`
+      const url = `${API_URL}/tasks/${taskId}/logs${follow ? "?follow=true" : ""}`
       const response = await fetch(url, { signal: controller.signal })
 
       if (!follow) {

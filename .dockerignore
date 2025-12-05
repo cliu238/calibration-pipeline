@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+.venv
+__pycache__
+*.pyc
+node_modules
+.DS_Store
+logs/*
+!logs/.gitkeep
+*.log
+.claude
+CLAUDE.md
+README.md

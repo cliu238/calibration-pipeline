@@ -13,14 +13,12 @@ data_type <- "WHO2016"
 nsim <- 1000
 age_group <- "neonate"
 country <- "Mozambique"
-# vacalibration parameters
-mmat_type <- "prior"
-path_correction <- TRUE
+# vacalibration parameters (compatible with v2.0 API)
+calibmodel_type <- "Mmatprior"  # v2.0: "Mmatprior" or "Mmatfixed"
+stable <- TRUE  # v2.0: path stability correction
 nMCMC <- 5000
 nBurn <- 5000
 nThin <- 1
-nChain <- 1
-nCore <- 1
 seed <- 1
 verbose <- TRUE
 saveoutput <- FALSE
@@ -39,9 +37,10 @@ for (arg in args) {
   } else if (grepl("^--country=", arg)) {
     country <- sub("^--country=", "", arg)
   } else if (grepl("^--mmat_type=", arg)) {
-    mmat_type <- sub("^--mmat_type=", "", arg)
+    val <- sub("^--mmat_type=", "", arg)
+    calibmodel_type <- if (val == "prior") "Mmatprior" else if (val == "fixed") "Mmatfixed" else val
   } else if (grepl("^--path_correction=", arg)) {
-    path_correction <- as.logical(sub("^--path_correction=", "", arg))
+    stable <- as.logical(sub("^--path_correction=", "", arg))
   } else if (grepl("^--nMCMC=", arg)) {
     nMCMC <- as.integer(sub("^--nMCMC=", "", arg))
   } else if (grepl("^--nBurn=", arg)) {
@@ -49,9 +48,9 @@ for (arg in args) {
   } else if (grepl("^--nThin=", arg)) {
     nThin <- as.integer(sub("^--nThin=", "", arg))
   } else if (grepl("^--nChain=", arg)) {
-    nChain <- as.integer(sub("^--nChain=", "", arg))
+    # v2.0 doesn't support nChain - ignore
   } else if (grepl("^--nCore=", arg)) {
-    nCore <- as.integer(sub("^--nCore=", "", arg))
+    # v2.0 doesn't support nCore - ignore
   } else if (grepl("^--seed=", arg)) {
     seed <- as.integer(sub("^--seed=", "", arg))
   } else if (grepl("^--verbose=", arg)) {
@@ -90,13 +89,11 @@ calib_insilicova <- vacalibration::vacalibration(
   va_data = insilicova_prep,
   age_group = age_group,
   country = country,
-  Mmat_type = mmat_type,
-  path_correction = path_correction,
+  calibmodel.type = calibmodel_type,  # v2.0 API
+  stable = stable,  # v2.0 API
   nMCMC = nMCMC,
   nBurn = nBurn,
   nThin = nThin,
-  nChain = nChain,
-  nCore = nCore,
   seed = seed,
   verbose = verbose,
   saveoutput = saveoutput,

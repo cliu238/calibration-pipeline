@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card"
 import { Badge } from "./ui/badge"
+import { API_URL } from "../config"
 
 interface Task {
   task_id: string
@@ -37,7 +38,7 @@ export function TaskHistory({ currentTaskId, onSelectTask }: TaskHistoryProps) {
           }
 
           try {
-            const response = await fetch(`http://localhost:8000/tasks/${task.task_id}`)
+            const response = await fetch(`${API_URL}/tasks/${task.task_id}`)
             const data = await response.json()
             return { ...task, status: data.status }
           } catch (error) {
