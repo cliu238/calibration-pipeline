@@ -1,23 +1,44 @@
 # Deployment Guide
 
-## Quick Deploy
+## Local Development
+
+```bash
+docker compose up -d
+```
+
+Access at http://localhost
+
+### When to Rebuild
+
+**R scripts and Python code are volume-mounted** - changes are reflected immediately without rebuilding.
+
+Only rebuild when **dependencies change** (new R/Python packages):
+```bash
+docker compose build worker  # Uses cache, faster
+docker compose up -d worker
+```
+
+Use `--no-cache` only when cache is stale:
+```bash
+docker compose build --no-cache worker  # Full rebuild, slow
+```
+
+## Remote Deployment
+
+### Quick Deploy
 
 ```bash
 ./deploy.sh
 ```
 
-This will:
-1. Sync files to the server via rsync
-2. Build Docker images
-3. Start all containers
+This syncs files to the server, builds Docker images, and starts containers.
 
-## Access
+### Access
 
 - **Private (Tailscale)**: http://100.106.202.64
-- **Public (Cloudflare)**: See "Public Access" section below
 - **Server**: `cliu238@100.106.202.64`
 
-## Manual Commands
+### Manual Commands
 
 SSH into server:
 ```bash
@@ -58,49 +79,22 @@ docker compose up -d
 | worker | - | Celery worker for R scripts |
 | redis | 6379 (internal) | Message broker |
 
-## Public Access (Cloudflare Tunnel)
-
-The server is on Tailscale VPN (100.x.x.x), so it's not directly public. Use Cloudflare Tunnel for public access.
-
-### Start Tunnel
-```bash
-ssh cliu238@100.106.202.64 "nohup ~/bin/cloudflared tunnel --url http://localhost:80 > ~/cloudflared.log 2>&1 &"
-```
-
-### Get Public URL
-```bash
-ssh cliu238@100.106.202.64 "cat ~/cloudflared.log | grep trycloudflare.com"
-```
-
-Example output: `https://random-words.trycloudflare.com`
-
-### Stop Tunnel
-```bash
-ssh cliu238@100.106.202.64 "pkill cloudflared"
-```
-
-### Check Tunnel Status
-```bash
-ssh cliu238@100.106.202.64 "pgrep -a cloudflared"
-```
-
-**Note:** Temporary URLs change each time the tunnel restarts. For a permanent custom domain, set up a named Cloudflare Tunnel with a free Cloudflare account.
-
 ## Troubleshooting
 
-### Container not starting
-```bash
-docker compose logs worker  # Check for R package errors
-```
+### "no package called 'openVA'" Error
 
-### R script errors
-Check if vacalibration is properly compiled:
+Rebuild the worker container:
 ```bash
-docker compose exec worker R -e "library(vacalibration); packageVersion('vacalibration')"
-```
-
-### Rebuild single service
-```bash
-docker compose build --no-cache worker
+docker compose build worker
 docker compose up -d worker
+```
+
+### Check R packages in container
+```bash
+docker compose exec worker R -e "library(openVA); library(vacalibration)"
+```
+
+### View logs
+```bash
+docker compose logs -f worker
 ```
