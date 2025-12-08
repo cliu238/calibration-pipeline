@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/card"
 import { Badge } from "./ui/badge"
 import { API_URL } from "../config"
@@ -6,7 +6,6 @@ import { API_URL } from "../config"
 interface Task {
   task_id: string
   status: string
-  timestamp?: string
 }
 
 interface TaskHistoryProps {
@@ -17,80 +16,30 @@ interface TaskHistoryProps {
 export function TaskHistory({ currentTaskId, onSelectTask }: TaskHistoryProps) {
   const [tasks, setTasks] = useState<Task[]>([])
 
-  // Load tasks from localStorage on mount
-  useEffect(() => {
-    const savedTasks = localStorage.getItem("va-calibration-tasks")
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks))
+  // Fetch tasks from backend
+  const fetchTasks = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/tasks`)
+      const data = await response.json()
+      setTasks(data.tasks || [])
+    } catch (error) {
+      console.error("Failed to fetch tasks:", error)
     }
   }, [])
 
-  // Poll for status updates for all tasks
+  // Load tasks on mount and poll for updates
   useEffect(() => {
-    if (tasks.length === 0) return
-
-    const updateTaskStatuses = async () => {
-      const updatedTasks = await Promise.all(
-        tasks.map(async (task) => {
-          // Only update if task is not in final state
-          if (task.status === "success" || task.status === "failed") {
-            return task
-          }
-
-          try {
-            const response = await fetch(`${API_URL}/tasks/${task.task_id}`)
-            const data = await response.json()
-            return { ...task, status: data.status }
-          } catch (error) {
-            return task
-          }
-        })
-      )
-
-      // Only update if there are actual status changes
-      const hasChanges = updatedTasks.some((updatedTask, index) =>
-        updatedTask.status !== tasks[index]?.status
-      )
-
-      if (hasChanges) {
-        setTasks(updatedTasks)
-        localStorage.setItem("va-calibration-tasks", JSON.stringify(updatedTasks))
-      }
-    }
-
-    // Update immediately
-    updateTaskStatuses()
-
-    // Then poll every 3 seconds
-    const interval = setInterval(updateTaskStatuses, 3000)
+    fetchTasks()
+    const interval = setInterval(fetchTasks, 3000)
     return () => clearInterval(interval)
-  }, [tasks])
+  }, [fetchTasks])
 
-  // Save new task to history when currentTaskId changes
+  // Refresh when currentTaskId changes (new task submitted)
   useEffect(() => {
-    if (!currentTaskId) return
-
-    const existingTask = tasks.find((t) => t.task_id === currentTaskId)
-    if (existingTask) {
-      // Task already in history, move it to top
-      const updatedTasks = [
-        existingTask,
-        ...tasks.filter((t) => t.task_id !== currentTaskId),
-      ]
-      setTasks(updatedTasks)
-      localStorage.setItem("va-calibration-tasks", JSON.stringify(updatedTasks))
-    } else {
-      // New task, add to history
-      const newTask: Task = {
-        task_id: currentTaskId,
-        status: "pending",
-        timestamp: new Date().toISOString(),
-      }
-      const updatedTasks = [newTask, ...tasks].slice(0, 10) // Keep last 10 tasks
-      setTasks(updatedTasks)
-      localStorage.setItem("va-calibration-tasks", JSON.stringify(updatedTasks))
+    if (currentTaskId) {
+      fetchTasks()
     }
-  }, [currentTaskId])
+  }, [currentTaskId, fetchTasks])
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -107,15 +56,13 @@ export function TaskHistory({ currentTaskId, onSelectTask }: TaskHistoryProps) {
     }
   }
 
-  const formatTimestamp = (timestamp?: string) => {
-    if (!timestamp) return "Unknown"
-    const date = new Date(timestamp)
-    return date.toLocaleString()
-  }
-
-  const clearHistory = () => {
-    setTasks([])
-    localStorage.removeItem("va-calibration-tasks")
+  const clearHistory = async () => {
+    try {
+      await fetch(`${API_URL}/tasks`, { method: "DELETE" })
+      setTasks([])
+    } catch (error) {
+      console.error("Failed to delete tasks:", error)
+    }
   }
 
   if (tasks.length === 0) {
@@ -158,15 +105,12 @@ export function TaskHistory({ currentTaskId, onSelectTask }: TaskHistoryProps) {
                   : "bg-white border-gray-200 hover:bg-gray-50"
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <code className="text-xs bg-gray-100 px-2 py-1 rounded">
                   {task.task_id.substring(0, 8)}...
                 </code>
                 {getStatusBadge(task.status)}
               </div>
-              <p className="text-xs text-gray-600">
-                {formatTimestamp(task.timestamp)}
-              </p>
             </div>
           ))}
         </div>

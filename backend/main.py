@@ -6,11 +6,16 @@ from backend.worker import run_calibration_task, celery_app
 import logging
 import os
 import asyncio
+import redis
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="VA Calibration API")
+
+# Redis connection for listing tasks
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+redis_client = redis.from_url(redis_url, decode_responses=True)
 
 # Add CORS middleware
 app.add_middleware(
@@ -168,6 +173,62 @@ async def get_task_logs(task_id: str, follow: bool = False):
                     await asyncio.sleep(0.5)
 
     return StreamingResponse(log_streamer(), media_type="text/plain")
+
+
+@app.delete("/tasks/{task_id}")
+def delete_task(task_id: str):
+    """Delete a task and its log file"""
+    # Revoke the task if it's still running
+    celery_app.control.revoke(task_id, terminate=True)
+
+    # Forget the task result from backend
+    task_result = celery_app.AsyncResult(task_id)
+    task_result.forget()
+
+    # Delete log file if exists
+    log_file = f"logs/{task_id}.log"
+    if os.path.exists(log_file):
+        os.remove(log_file)
+
+    logger.info(f"Deleted task: {task_id}")
+    return {"status": "deleted", "task_id": task_id}
+
+
+@app.get("/tasks")
+def list_tasks():
+    """List all tasks from Redis"""
+    tasks = []
+    # Get all celery task meta keys
+    keys = redis_client.keys("celery-task-meta-*")
+    for key in keys:
+        task_id = key.replace("celery-task-meta-", "")
+        task_result = celery_app.AsyncResult(task_id)
+        status = task_result.state.lower()
+        if status == "started":
+            status = "running"
+        tasks.append({"task_id": task_id, "status": status})
+    return {"tasks": tasks}
+
+
+@app.delete("/tasks")
+def delete_all_tasks():
+    """Delete all tasks and their log files"""
+    deleted = []
+    keys = redis_client.keys("celery-task-meta-*")
+    for key in keys:
+        task_id = key.replace("celery-task-meta-", "")
+        celery_app.control.revoke(task_id, terminate=True)
+        task_result = celery_app.AsyncResult(task_id)
+        task_result.forget()
+
+        log_file = f"logs/{task_id}.log"
+        if os.path.exists(log_file):
+            os.remove(log_file)
+
+        deleted.append(task_id)
+
+    logger.info(f"Deleted {len(deleted)} tasks")
+    return {"status": "deleted", "count": len(deleted), "task_ids": deleted}
 
 
 @app.get("/health")

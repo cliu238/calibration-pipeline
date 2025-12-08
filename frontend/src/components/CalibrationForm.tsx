@@ -40,6 +40,7 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [params, setParams] = useState<CalibrationParams>({
     mode: "full",
+    dataset_path: "data/NeonatesVA5.csv",
     country: "Mozambique",
     age_group: "neonate",
     data_type: "WHO2016",
