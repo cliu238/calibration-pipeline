@@ -55,6 +55,10 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
     seed: 1,
     verbose: true,
     saveoutput: false,
+    // ensemble defaults
+    eava_path: "data/ensemble/single_eava_neonate_comsa.rds",
+    insilicova_path: "data/ensemble/single_insilicova_neonate_comsa.rds",
+    interva_path: "data/ensemble/single_interva_neonate_comsa.rds",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,7 +198,7 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
                 <Label htmlFor="eava_path">EAVA Output Path</Label>
                 <Input
                   id="eava_path"
-                  placeholder="/path/to/eava_output.rds"
+                  placeholder="data/ensemble/single_eava_neonate_comsa.rds"
                   value={params.eava_path || ""}
                   onChange={(e) =>
                     setParams({ ...params, eava_path: e.target.value || undefined })
@@ -207,7 +211,7 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
                 <Label htmlFor="insilicova_path">InSilicoVA Output Path</Label>
                 <Input
                   id="insilicova_path"
-                  placeholder="/path/to/insilicova_output.rds"
+                  placeholder="data/ensemble/single_insilicova_neonate_comsa.rds"
                   value={params.insilicova_path || ""}
                   onChange={(e) =>
                     setParams({ ...params, insilicova_path: e.target.value || undefined })
@@ -220,7 +224,7 @@ export function CalibrationForm({ onSubmit }: CalibrationFormProps) {
                 <Label htmlFor="interva_path">InterVA Output Path</Label>
                 <Input
                   id="interva_path"
-                  placeholder="/path/to/interva_output.rds"
+                  placeholder="data/ensemble/single_interva_neonate_comsa.rds"
                   value={params.interva_path || ""}
                   onChange={(e) =>
                     setParams({ ...params, interva_path: e.target.value || undefined })

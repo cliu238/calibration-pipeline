@@ -75,9 +75,19 @@ export function TaskStatus({ taskId }: TaskStatusProps) {
     // Initial fetch
     fetchStatus()
 
-    // Poll every 2 seconds if task is pending or running
-    const interval = setInterval(() => {
-      fetchStatus()
+    // Poll every 2 seconds only if task is pending or running
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_URL}/tasks/${taskId}`)
+        const data = await response.json()
+        setTask(data)
+        // Stop polling if task is complete
+        if (data.status === 'success' || data.status === 'failed') {
+          clearInterval(interval)
+        }
+      } catch (error) {
+        console.error("Failed to fetch task status:", error)
+      }
     }, 2000)
 
     return () => clearInterval(interval)
@@ -238,18 +248,19 @@ export function TaskStatus({ taskId }: TaskStatusProps) {
                             <table className="w-full text-xs border-collapse">
                               <thead>
                                 <tr className="bg-gray-50 border-b">
-                                  <th className="text-left p-1 font-medium text-gray-700">Rank</th>
                                   <th className="text-left p-1 font-medium text-gray-700">Cause</th>
+                                  <th className="text-right p-1 font-medium text-gray-700">Before Calibration CSMF</th>
                                   <th className="text-right p-1 font-medium text-gray-700">Calibrated CSMF</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {algoResult.top_causes?.map((cause, idx) => {
+                                  const uncalib = (cause.uncalibrated_csmf?.[0] ?? cause.uncalibrated_csmf) as number * 100
                                   const calib = (cause.calibrated_csmf?.[0] ?? cause.calibrated_csmf) as number * 100
                                   return (
                                     <tr key={idx} className="border-b hover:bg-gray-50">
-                                      <td className="p-1 text-gray-600">{idx + 1}</td>
                                       <td className="p-1 font-medium">{cause.cause?.[0] ?? cause.cause}</td>
+                                      <td className="p-1 text-right text-gray-600">{uncalib.toFixed(2)}%</td>
                                       <td className="p-1 text-right font-semibold">{calib.toFixed(2)}%</td>
                                     </tr>
                                   )

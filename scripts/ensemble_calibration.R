@@ -4,6 +4,11 @@
 
 library(vacalibration)
 
+# DEBUG: Print function signature
+cat("\n=== DEBUG: vacalibration function signature ===\n")
+print(args(vacalibration::vacalibration))
+cat("=== END DEBUG ===\n\n")
+
 # Parse command line arguments
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -13,9 +18,9 @@ insilicova_path <- NULL
 interva_path <- NULL
 age_group <- "neonate"
 country <- "Mozambique"
-# vacalibration parameters (compatible with v2.0 API)
-calibmodel_type <- "Mmatprior"  # v2.0: "Mmatprior" or "Mmatfixed"
-stable <- TRUE  # v2.0: path stability correction
+# vacalibration parameters (OLD API: calibmodel.type, stable)
+calibmodel_type <- "Mmatprior"  # "Mmatprior" or "Mmatfixed"
+stable <- TRUE
 nMCMC <- 5000
 nBurn <- 5000
 nThin <- 1
@@ -38,11 +43,11 @@ for (arg in args) {
   } else if (grepl("^--country=", arg)) {
     country <- sub("^--country=", "", arg)
   } else if (grepl("^--mmat_type=", arg)) {
-    # Map to v2.0 API: "prior" -> "Mmatprior", "fixed" -> "Mmatfixed"
+    # OLD API: Map frontend values to calibmodel.type values
     val <- sub("^--mmat_type=", "", arg)
     calibmodel_type <- if (val == "prior") "Mmatprior" else if (val == "fixed") "Mmatfixed" else val
   } else if (grepl("^--path_correction=", arg)) {
-    # Map to v2.0 API: path_correction -> stable
+    # OLD API uses "stable" parameter
     stable <- as.logical(sub("^--path_correction=", "", arg))
   } else if (grepl("^--nMCMC=", arg)) {
     nMCMC <- as.integer(sub("^--nMCMC=", "", arg))
@@ -132,8 +137,8 @@ calib_result <- vacalibration::vacalibration(
   va_data = va_data_list,
   age_group = age_group,
   country = country,
-  calibmodel.type = calibmodel_type,  # v2.0 API
-  stable = stable,  # v2.0 API
+  calibmodel.type = calibmodel_type,
+  stable = stable,
   nMCMC = nMCMC,
   nBurn = nBurn,
   nThin = nThin,
