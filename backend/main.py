@@ -120,8 +120,13 @@ def create_calibration_task(request: CalibrationRequest = CalibrationRequest()):
 
 
 @app.get("/tasks/{task_id}", response_model=TaskResult)
-def get_task_status(task_id: str):
-    """Get the status and result of a task"""
+def get_task_status(task_id: str, full_output: bool = False):
+    """Get the status and result of a task.
+
+    Args:
+        task_id: The task ID
+        full_output: If True, return full R console output. Default False (truncated to 2000 chars).
+    """
     task_result = celery_app.AsyncResult(task_id)
 
     if task_result.state == "PENDING":
@@ -129,7 +134,14 @@ def get_task_status(task_id: str):
     elif task_result.state == "STARTED":
         return TaskResult(task_id=task_id, status="running")
     elif task_result.state == "SUCCESS":
-        return TaskResult(task_id=task_id, status="success", result=task_result.result)
+        result = task_result.result
+        # Truncate large output field to improve response time
+        if isinstance(result, dict) and "output" in result and not full_output:
+            result = result.copy()
+            output = result.get("output", "")
+            if len(output) > 2000:
+                result["output"] = output[:2000] + f"\n\n... [truncated, {len(output)} total chars. Use ?full_output=true for complete log]"
+        return TaskResult(task_id=task_id, status="success", result=result)
     elif task_result.state == "FAILURE":
         return TaskResult(task_id=task_id, status="failed", error=str(task_result.info))
     else:

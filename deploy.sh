@@ -30,7 +30,7 @@ rsync -avz --delete \
 ssh $DEPLOY_SERVER "cd $DEPLOY_PATH && \
     mkdir -p logs data && \
     docker compose down --remove-orphans 2>/dev/null || true && \
-    docker compose build --no-cache && \
+    docker compose build && \
     docker compose up -d"
 
 echo "Deployment complete!"
