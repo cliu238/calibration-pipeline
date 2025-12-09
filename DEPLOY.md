@@ -35,6 +35,10 @@ This syncs files to the server, builds Docker images, and starts containers.
 
 ### Access
 
+- **Public (Cloudflare Tunnel)**: URL changes on restart - check with:
+  ```bash
+  ssh cliu238@100.106.202.64 "cat ~/cloudflared*.log | grep trycloudflare.com | head -1"
+  ```
 - **Private (Tailscale)**: http://100.106.202.64
 - **Server**: `cliu238@100.106.202.64`
 
