@@ -83,10 +83,9 @@ docker compose up -d
 
 ### "no package called 'openVA'" Error
 
-Rebuild the worker container:
+Install directly in the running container (faster than rebuilding):
 ```bash
-docker compose build worker
-docker compose up -d worker
+docker compose exec worker bash -c "apt-get update && apt-get install -y libtirpc-dev && R -e \"remotes::install_github('verbal-autopsy-software/openVA')\""
 ```
 
 ### Check R packages in container

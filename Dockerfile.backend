@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libtiff5-dev \
     libjpeg-dev \
     pkg-config \
+    libtirpc-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Configure Java for R
