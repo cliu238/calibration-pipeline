@@ -185,9 +185,10 @@ for (algo in algo_names) {
   }
 
   # Get uncalibrated CSMF if available
-  if (!is.null(calib_result$p_uncalib) && algo %in% names(calib_result$p_uncalib)) {
-    algo_uncalib_csmf <- calib_result$p_uncalib[[algo]]
-  } else if (!is.null(calib_result$p_uncalib) && is.numeric(calib_result$p_uncalib)) {
+  # Note: p_uncalib is a matrix with algorithms as rows and causes as columns
+  if (!is.null(calib_result$p_uncalib) && is.matrix(calib_result$p_uncalib) && algo %in% rownames(calib_result$p_uncalib)) {
+    algo_uncalib_csmf <- calib_result$p_uncalib[algo, ]
+  } else if (!is.null(calib_result$p_uncalib) && is.numeric(calib_result$p_uncalib) && !is.matrix(calib_result$p_uncalib)) {
     algo_uncalib_csmf <- calib_result$p_uncalib
   } else {
     algo_uncalib_csmf <- rep(NA, length(algo_calib_csmf))
